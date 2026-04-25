@@ -1,3 +1,13 @@
+/**
+ * SetupScreen — initial screen for entering a Gemini API key.
+ *
+ * Validates that the key starts with "AIza" and is at least 30 characters
+ * before persisting it to localStorage. Also offers a "Demo" path that sets
+ * the key to the sentinel value "DEMO", bypassing the real Gemini API entirely.
+ *
+ * The key is stored only in the user's browser — it is never sent to our servers,
+ * only forwarded directly to the Gemini API in the X-API-Key request header.
+ */
 import { useState } from 'react';
 
 export default function SetupScreen({ onSave }) {

@@ -1,3 +1,12 @@
+"""
+ChromaDB persistence layer for Grasp.
+
+Three collections are maintained:
+  - sessions         : one document per session (topic, started_at, difficulty)
+  - conversation_turns: every user/assistant message turn for a session
+  - concepts_mastered : concepts the learner reached "solid" mastery on, used for memory
+"""
+
 import os
 import chromadb
 from datetime import datetime, timezone
@@ -6,6 +15,7 @@ from models.schemas import MemoryContext
 
 _CHROMA_PATH = os.getenv("CHROMA_PATH", "./chroma_db")
 
+# Module-level singletons — initialised once in init_chroma() at app startup.
 _client = None
 _sessions_col = None
 _turns_col = None
@@ -13,6 +23,7 @@ _concepts_col = None
 
 
 def init_chroma():
+    """Open (or create) the ChromaDB database and all three collections."""
     global _client, _sessions_col, _turns_col, _concepts_col
     _client = chromadb.PersistentClient(path=_CHROMA_PATH)
     _sessions_col = _client.get_or_create_collection("sessions")
@@ -21,11 +32,13 @@ def init_chroma():
 
 
 def _ensure_initialized():
+    """Lazy-init guard — called at the start of every public function."""
     if _client is None:
         init_chroma()
 
 
 def create_session(session_id: str, topic: str):
+    """Record a new session in ChromaDB with default beginner difficulty."""
     _ensure_initialized()
     now = datetime.now(timezone.utc).isoformat()
     _sessions_col.add(
@@ -36,6 +49,7 @@ def create_session(session_id: str, topic: str):
 
 
 def update_session_difficulty(session_id: str, difficulty: str, concept_count: int):
+    """Update difficulty and concept count after each chat turn so they reflect the latest state."""
     _ensure_initialized()
     try:
         _sessions_col.update(
@@ -47,8 +61,10 @@ def update_session_difficulty(session_id: str, difficulty: str, concept_count: i
 
 
 def store_turn(session_id: str, role: str, content: str, mastery_signals: str = "", teaching_strategy: str = ""):
+    """Append a single conversation turn (user or assistant) to the turns collection."""
     _ensure_initialized()
     now = datetime.now(timezone.utc).isoformat()
+    # Include ISO timestamp in the ID to guarantee uniqueness within a session.
     turn_id = f"{session_id}_{role}_{now}"
     _turns_col.add(
         ids=[turn_id],
@@ -64,8 +80,10 @@ def store_turn(session_id: str, role: str, content: str, mastery_signals: str = 
 
 
 def store_concept(session_id: str, topic: str, concept: str, mastery_level: str, strategy: str):
+    """Persist a mastered concept; update it if it was already stored (e.g. re-mastered with better strategy)."""
     _ensure_initialized()
     now = datetime.now(timezone.utc).isoformat()
+    # Deterministic ID so the same concept in the same session never creates duplicates.
     concept_id = f"{session_id}_{concept.replace(' ', '_')}"
     try:
         _concepts_col.add(
@@ -94,6 +112,7 @@ def store_concept(session_id: str, topic: str, concept: str, mastery_level: str,
 
 
 def get_session_turns(session_id: str) -> list[dict]:
+    """Return raw ChromaDB documents + metadata for every turn in a session (unsorted)."""
     _ensure_initialized()
     results = _turns_col.get(where={"session_id": session_id})
     turns = []
@@ -138,6 +157,7 @@ def get_session_meta(session_id: str) -> dict | None:
 
 
 def get_prior_context(topic: str) -> MemoryContext:
+    """Fetch cross-session learning history for `topic` to populate memory in the system prompt."""
     _ensure_initialized()
 
     # Query mastered concepts for this topic
@@ -150,7 +170,7 @@ def get_prior_context(topic: str) -> MemoryContext:
         prior_concepts = []
         if results and results["documents"] and results["documents"][0]:
             for doc in results["documents"][0]:
-                # doc format: "{concept} in {topic}"
+                # doc format: "{concept} in {topic}" — strip the suffix to get just the concept name
                 concept = doc.replace(f" in {topic}", "").strip()
                 if concept:
                     prior_concepts.append(concept)
@@ -169,7 +189,7 @@ def get_prior_context(topic: str) -> MemoryContext:
         if session_results and session_results["metadatas"] and session_results["metadatas"][0]:
             metas = session_results["metadatas"][0]
             session_count = len(metas)
-            # Get most recent difficulty — sort by started_at
+            # ISO timestamps sort lexicographically, so this gives the most recent session.
             sorted_metas = sorted(metas, key=lambda m: m.get("started_at", ""), reverse=True)
             prior_difficulty = sorted_metas[0].get("final_difficulty", "beginner")
     except Exception:

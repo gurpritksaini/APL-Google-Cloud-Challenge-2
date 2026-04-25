@@ -1,3 +1,11 @@
+/**
+ * ChatArea — scrollable message list for the active tutoring session.
+ *
+ * Renders each message via MessageBubble, shows a typing indicator while the
+ * AI is responding, and displays an inline error toast when `error` is set.
+ * The `messagesEndRef` div at the bottom is used by useLearningSession to
+ * auto-scroll after each new message.
+ */
 import MessageBubble from './MessageBubble';
 
 export default function ChatArea({ messages, isLoading, messagesEndRef, error }) {

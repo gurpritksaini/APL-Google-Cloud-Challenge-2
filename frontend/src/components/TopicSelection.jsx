@@ -1,5 +1,18 @@
+/**
+ * TopicSelection — home screen where the user picks a topic to study.
+ *
+ * Shows:
+ *   - "Continue Learning" list of past sessions (from localStorage, max 5)
+ *   - Preset topic grid (8 topics with icons and gradient cards)
+ *   - Free-text "explore any topic" input
+ *   - API key status pill that navigates to SetupScreen on click
+ *
+ * Past sessions are stored/read directly in localStorage by this component
+ * and by useLearningSession — they share the key 'grasp_sessions'.
+ */
 import { useState, useEffect } from 'react';
 
+// Preset topics displayed as cards in the grid. Each has a gradient and glow for hover effects.
 const TOPICS = [
   { label:'Python',           icon:'🐍', grad:'linear-gradient(135deg,#166534,#16a34a)', glow:'rgba(22,163,74,0.3)' },
   { label:'JavaScript',       icon:'⚡', grad:'linear-gradient(135deg,#92400e,#d97706)', glow:'rgba(217,119,6,0.3)' },

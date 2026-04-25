@@ -1,4 +1,13 @@
+"""Builds the Gemini system prompt that governs Grasp's Socratic teaching behavior."""
+
+
 def build_system_prompt(topic: str, memory_context: str) -> str:
+    """Return a complete system prompt for a Gemini chat session on `topic`.
+
+    `memory_context` is a plain-text block injected at the end of the prompt
+    when the learner has prior sessions — it tells the tutor which concepts to
+    skip and where to pick up difficulty. Pass an empty string for new learners.
+    """
     return f"""You are Grasp, a Socratic AI tutor teaching the topic: **{topic}**.
 
 ## Core Teaching Rules

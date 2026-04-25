@@ -1,3 +1,13 @@
+/**
+ * ChatSession — full-screen layout for an active tutoring session.
+ *
+ * Composes ChatHeader, ProgressPanel (collapsible), ChatArea, and ChatInput
+ * into a flex column that fills the viewport. Also renders a demo-mode banner
+ * at the top when the user is using the DEMO API key.
+ *
+ * All state (messages, meta, loading, error) is passed down from App via
+ * useLearningSession — this component is purely presentational.
+ */
 import ChatHeader from './ChatHeader';
 import ProgressPanel from './ProgressPanel';
 import ChatArea from './ChatArea';

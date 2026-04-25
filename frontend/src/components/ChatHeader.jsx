@@ -1,3 +1,12 @@
+/**
+ * ChatHeader — fixed top bar shown during an active session.
+ *
+ * Displays: back button, current topic + concept, active teaching strategy badge,
+ * mastery signal dot, concepts-taught count, and the Progress panel toggle.
+ * All values are derived from `meta` (SessionMeta) updated live by the backend.
+ */
+
+// Maps each teaching strategy to its display label and colour scheme.
 const STRATEGY_META = {
   socratic:           { label:'Socratic',     color:'#a78bfa', bg:'rgba(167,139,250,0.12)' },
   analogies:          { label:'Analogy',      color:'#34d399', bg:'rgba(52,211,153,0.12)' },
@@ -6,6 +15,7 @@ const STRATEGY_META = {
   review:             { label:'Review',       color:'#f87171', bg:'rgba(248,113,113,0.12)' },
 };
 
+// Colour for the live mastery-signal indicator dot in the header.
 const MASTERY_DOT = {
   none:       '#4b5563',
   emerging:   '#fcd34d',

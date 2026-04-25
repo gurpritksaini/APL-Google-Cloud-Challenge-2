@@ -1,6 +1,18 @@
+/**
+ * useLearningSession — central state hook for a Grasp tutoring session.
+ *
+ * Manages:
+ *   - Session lifecycle (start, resume, reset)
+ *   - Message list and scroll-to-bottom behaviour
+ *   - SessionMeta updates (mastery, difficulty, strategy) from each API response
+ *   - Error handling with specific flows for invalid key and quota errors
+ *
+ * Consumed by App.jsx and passed down as props to ChatSession.
+ */
 import { useState, useRef, useCallback } from 'react';
 import { startSession, sendMessage, getSession } from '../utils/api';
 
+// Fallback meta used at session start and after a reset — matches the backend default.
 const DEFAULT_META = {
   concepts_taught: [],
   current_concept: '',
@@ -9,9 +21,11 @@ const DEFAULT_META = {
   teaching_strategy: 'socratic',
 };
 
+/** Upsert a session entry in localStorage so it appears in the "Continue Learning" list. */
 function saveSessionToStorage(session_id, topic) {
   const saved = JSON.parse(localStorage.getItem('grasp_sessions') || '[]');
   const entry = { session_id, topic, started_at: new Date().toISOString() };
+  // Keep at most 10 sessions; move the current one to the top if it already exists.
   const updated = [entry, ...saved.filter(s => s.session_id !== session_id)].slice(0, 10);
   localStorage.setItem('grasp_sessions', JSON.stringify(updated));
 }
@@ -21,8 +35,9 @@ export function useLearningSession(apiKey, onInvalidKey) {
   const [sessionMeta, setSessionMeta] = useState(DEFAULT_META);
   const [sessionId, setSessionId] = useState(null);
   const [topic, setTopic] = useState('');
-  // Store the opening user prompt so it always anchors the Gemini history as
-  // the first user turn — Gemini rejects conversations that start with a model turn.
+  // The opening user prompt is stored separately so it can always be prepended to
+  // the Gemini history as the first turn — Gemini rejects histories that start with
+  // a model turn.
   const [openingPrompt, setOpeningPrompt] = useState('');
   const [progressOpen, setProgressOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,14 +47,17 @@ export function useLearningSession(apiKey, onInvalidKey) {
   const scrollToBottom = () =>
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
 
+  /** Append a message to the list and scroll the chat to the bottom. */
   const addMessage = useCallback((role, content, meta = null) => {
     setMessages(prev => [
       ...prev,
+      // Stable unique ID prevents React key collisions when messages arrive quickly.
       { role, content, meta, id: `${Date.now()}-${Math.random()}` },
     ]);
     setTimeout(scrollToBottom, 50);
   }, []);
 
+  /** Start a brand-new session: creates a session on the backend and sends the opening prompt. */
   const selectTopic = useCallback(async (selectedTopic) => {
     setError(null);
     setIsLoading(true);
@@ -75,6 +93,7 @@ export function useLearningSession(apiKey, onInvalidKey) {
     }
   }, [apiKey, addMessage, onInvalidKey]);
 
+  /** Resume a past session: loads history from the backend and restores it to the message list. */
   const resumeSession = useCallback(async (savedSession) => {
     const { session_id, topic: savedTopic } = savedSession;
     setError(null);
@@ -135,6 +154,7 @@ export function useLearningSession(apiKey, onInvalidKey) {
     }
   }, [apiKey, addMessage]);
 
+  /** Send a user message, update the message list optimistically, then await the AI reply. */
   const send = useCallback(async (text) => {
     if (!text.trim() || isLoading || !sessionId) return;
     setError(null);
@@ -142,9 +162,11 @@ export function useLearningSession(apiKey, onInvalidKey) {
     addMessage('user', text);
     setIsLoading(true);
 
-    // Build history:
-    //   1. Always prepend the opening user prompt so Gemini history starts with 'user'
-    //   2. Followed by the visible conversation (last 18 turns to stay within limits)
+    // History sent to the backend is:
+    //   [user:openingPrompt, ...last 18 visible turns]
+    // The opening prompt is always first so Gemini never sees a history that starts
+    // with a model turn (which it rejects). 18 visible turns + 1 opening = 19 max,
+    // safely under the 20-turn limit enforced by the backend.
     // Result: [user:opening, model:AI_reply, user:msg1, model:AI_reply2, ..., user:text]
     const visibleHistory = messages.slice(-18).map(m => ({
       role: m.role === 'assistant' ? 'assistant' : 'user',
@@ -172,6 +194,7 @@ export function useLearningSession(apiKey, onInvalidKey) {
     }
   }, [sessionId, topic, messages, openingPrompt, apiKey, isLoading, addMessage, onInvalidKey]);
 
+  /** Reset all session state to defaults — called when navigating back to the topic picker. */
   const resetSession = useCallback(() => {
     setMessages([]);
     setSessionMeta(DEFAULT_META);

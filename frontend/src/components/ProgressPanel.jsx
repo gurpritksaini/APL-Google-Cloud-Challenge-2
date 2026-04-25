@@ -1,3 +1,12 @@
+/**
+ * ProgressPanel — collapsible panel showing live learning progress.
+ *
+ * Renders a mastery progress bar, current difficulty level, concepts-covered
+ * count, and a tag cloud of all concepts taught so far.
+ * Visibility is controlled by `isOpen` from the parent (ChatSession).
+ */
+
+// Maps mastery signal values to display label, CSS variable colours, and bar width percentage.
 const MASTERY = {
   none:       { label:'No signal yet', fg:'var(--mastery-none-fg)',       bg:'var(--mastery-none)',       pct:'4%'  },
   emerging:   { label:'Emerging',      fg:'var(--mastery-emerging-fg)',   bg:'var(--mastery-emerging)',   pct:'30%' },

@@ -1,3 +1,11 @@
+"""
+Gemini API client for Grasp.
+
+Discovers available text models for the given API key at runtime and tries them
+in priority order (flash > lite > pro, newest first). Falls back gracefully on
+404/model-unavailable errors and raises HTTP 401/429/502 for unrecoverable ones.
+"""
+
 import re
 import logging
 from google import genai
@@ -6,7 +14,7 @@ from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
 
-# Fallback list if model discovery fails
+# Used when model discovery fails (network error, permission issue, etc.).
 _FALLBACK_MODELS = [
     "gemini-2.5-flash",
     "gemini-2.5-flash-lite",
@@ -14,15 +22,16 @@ _FALLBACK_MODELS = [
     "gemini-1.5-flash",
 ]
 
-# These capability suffixes mean the model can't do plain text chat
+# Models with these substrings in their name can't do plain text chat.
 _NON_TEXT_KEYWORDS = ("tts", "audio", "image", "live")
 
 
 def _version_key(name: str) -> tuple:
-    """Sort key: higher version = higher priority. Stable > preview."""
+    """Sort key for model names: newer version wins, stable beats preview at the same version."""
     match = re.search(r"(\d+)\.?(\d*)", name)
     major = int(match.group(1)) if match else 0
     minor = int(match.group(2)) if match and match.group(2) else 0
+    # Negate is_preview so stable (0) sorts above preview (1) at equal major/minor.
     is_preview = 1 if "preview" in name else 0
     return (major, minor, -is_preview)
 
@@ -59,8 +68,14 @@ def _discover_models(client: genai.Client) -> list[str]:
 
 
 def get_gemini_response(api_key: str, system_prompt: str, history: list[dict], user_message: str) -> str:
+    """Send a chat turn to Gemini and return the raw response text (including the GRASP_META block).
+
+    Tries models in priority order. Raises HTTPException on auth, quota, or total failure.
+    """
     client = genai.Client(api_key=api_key)
 
+    # Convert our generic [{role, content}] history into Gemini's typed Content objects.
+    # Gemini uses "model" for the assistant role, not "assistant".
     gemini_history = [
         types.Content(
             role="user" if m["role"] == "user" else "model",
@@ -69,9 +84,11 @@ def get_gemini_response(api_key: str, system_prompt: str, history: list[dict], u
         for m in history
     ]
 
+    # Gemini rejects conversations that start with a model turn — strip any leading ones.
     while gemini_history and gemini_history[0].role == "model":
         gemini_history.pop(0)
 
+    # Append the current user message as the final turn.
     gemini_history.append(
         types.Content(role="user", parts=[types.Part(text=user_message)])
     )

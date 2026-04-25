@@ -1,3 +1,10 @@
+/**
+ * ChatInput — text input area at the bottom of the chat screen.
+ *
+ * Submits on Enter (without Shift) so Shift+Enter can insert newlines.
+ * The send button is disabled and unstyled when the input is empty or a
+ * response is already loading to prevent double-sends.
+ */
 import { useState, useRef } from 'react';
 
 export default function ChatInput({ onSend, isLoading }) {

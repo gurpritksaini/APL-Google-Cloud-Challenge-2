@@ -1,3 +1,14 @@
+"""
+/api/chat endpoint — the core of the tutor loop.
+
+Each request:
+  1. Validates the Gemini API key (supports "DEMO" mode for keyless testing).
+  2. Retrieves per-topic memory from ChromaDB and injects it into the system prompt.
+  3. Calls Gemini (or the demo mock) and parses the ---GRASP_META--- block from the reply.
+  4. Persists the turn and any newly mastered concepts back to ChromaDB.
+  5. Returns the clean reply text + updated SessionMeta to the frontend.
+"""
+
 import json
 import logging
 from fastapi import APIRouter, Header, HTTPException
@@ -11,6 +22,7 @@ from prompts.tutor_prompt import build_system_prompt
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+# Safe default used when metadata parsing fails — keeps the response schema valid.
 _DEFAULT_META = SessionMeta(
     concepts_taught=[],
     current_concept="",
@@ -21,7 +33,8 @@ _DEFAULT_META = SessionMeta(
 
 _FALLBACK_REPLY = "I had trouble formulating a response — please try again."
 
-# Valid fallback meta block used when Gemini returns no content
+# Appended to _FALLBACK_REPLY when Gemini returns None (empty/filtered response),
+# so _parse_meta always finds a valid block to parse.
 _FALLBACK_META_BLOCK = (
     '\n\n---GRASP_META---\n'
     '{"concepts_taught":[],"current_concept":"","mastery_signals":"none",'
@@ -61,32 +74,34 @@ def _parse_meta(raw_text: str) -> tuple[str, SessionMeta]:
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest, x_api_key: str = Header(..., alias="X-API-Key")):
+    """Handle a single tutor turn: call Gemini (or demo), parse metadata, persist to ChromaDB."""
     if not x_api_key or not x_api_key.strip():
         raise HTTPException(status_code=401, detail="Missing Gemini API key")
 
     if not body.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
-    # 2. Trim history to last 20 turns
+    # Keep the context window manageable — Gemini charges per token.
     history = body.history[-20:]
 
-    # 3. Call Gemini (or demo mock when key is "DEMO")
+    # "DEMO" is a sentinel key that activates scripted responses so users can
+    # try the app without a real Gemini API key.
     if x_api_key.strip().upper() == "DEMO":
         raw_response = get_demo_response(body.topic, history, body.message)
     else:
-        # 1. Retrieve memory context and build system prompt (skip in demo to save time)
+        # Retrieve memory context and build system prompt (skip in demo to save time)
         memory_ctx = memory_service.build_memory_context(body.topic)
         system_prompt = build_system_prompt(body.topic, memory_ctx)
         raw_response = get_gemini_response(x_api_key, system_prompt, history, body.message)
 
-    # Gemini can return None for empty/filtered responses
+    # Gemini can return None for empty/filtered responses — replace with safe fallback.
     if not raw_response:
         raw_response = _FALLBACK_REPLY + _FALLBACK_META_BLOCK
 
-    # 4. Parse metadata block out of the response
+    # Split the raw Gemini text into the visible reply and structured metadata.
     clean_text, meta = _parse_meta(raw_response)
 
-    # 5. Persist turn to ChromaDB (non-fatal if it fails)
+    # ChromaDB writes are non-fatal — a storage failure should never break the chat flow.
     try:
         chroma_service.store_turn(body.session_id, "user", body.message)
         chroma_service.store_turn(
@@ -97,7 +112,8 @@ async def chat(body: ChatRequest, x_api_key: str = Header(..., alias="X-API-Key"
     except Exception as e:
         logger.warning("ChromaDB turn storage failed: %s", e)
 
-    # 6. If mastery reached solid, persist the concept
+    # Only persist a concept when the learner has fully mastered it so memory
+    # stays meaningful and doesn't get polluted with partial knowledge.
     if meta.mastery_signals == "solid" and meta.current_concept:
         try:
             chroma_service.store_concept(
@@ -107,7 +123,7 @@ async def chat(body: ChatRequest, x_api_key: str = Header(..., alias="X-API-Key"
         except Exception as e:
             logger.warning("ChromaDB concept storage failed: %s", e)
 
-    # 7. Update session difficulty tracker
+    # Track difficulty so returning learners start at the right level next time.
     try:
         chroma_service.update_session_difficulty(
             body.session_id, meta.difficulty_level, len(meta.concepts_taught),

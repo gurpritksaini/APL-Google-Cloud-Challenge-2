@@ -66,19 +66,25 @@ _DEMO_BANNER = (
 )
 
 
-def get_demo_response(topic: str, history: list[dict], user_message: str) -> str:
-    # Determine which scripted response to return based on conversation length
+def get_demo_response(topic: str, history: list[dict], user_message: str) -> str:  # noqa: ARG001 — user_message kept to match get_gemini_response signature
+    """Return a scripted Socratic response that advances through the demo sequence.
+
+    Uses conversation depth (user turn count) to pick the right template so the
+    demo feels like a real progression even though no AI is involved.
+    """
     turn_count = len([m for m in history if m.get("role") == "user"])
 
     if turn_count <= 1:
         template = random.choice(_OPENERS)
     else:
+        # Clamp to the last follow-up so longer conversations don't go out of bounds.
         idx = min(turn_count - 2, len(_FOLLOW_UPS) - 1)
         template = _FOLLOW_UPS[idx]
 
     response = template.replace("{topic}", topic)
 
-    # Insert demo banner before the meta block
+    # Inject the demo banner just before the meta block so it renders inline
+    # in the chat bubble without disrupting the metadata parser.
     meta_start = response.find("\n\n---GRASP_META---")
     if meta_start != -1:
         response = response[:meta_start] + _DEMO_BANNER + response[meta_start:]

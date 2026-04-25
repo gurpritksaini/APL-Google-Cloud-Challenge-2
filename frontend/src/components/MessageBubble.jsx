@@ -1,3 +1,12 @@
+/**
+ * MessageBubble — renders a single chat message.
+ *
+ * User messages appear right-aligned with the accent gradient.
+ * Assistant messages appear left-aligned with an avatar, card background,
+ * and an optional strategy badge beneath showing how the AI approached the turn.
+ */
+
+// Label and colour for the small strategy hint shown under each assistant bubble.
 const STRAT_BADGE = {
   socratic:           { label:'Socratic',  color:'#a78bfa' },
   analogies:          { label:'Analogy',   color:'#34d399' },
