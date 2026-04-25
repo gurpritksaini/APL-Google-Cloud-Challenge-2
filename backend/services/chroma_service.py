@@ -6,7 +6,7 @@ from models.schemas import MemoryContext
 
 _CHROMA_PATH = os.getenv("CHROMA_PATH", "./chroma_db")
 
-_client: chromadb.PersistentClient | None = None
+_client = None
 _sessions_col = None
 _turns_col = None
 _concepts_col = None
