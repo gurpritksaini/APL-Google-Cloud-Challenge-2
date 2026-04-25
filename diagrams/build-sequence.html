@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grasp — Build Sequence</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f1117;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 48px 24px 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #a78bfa;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .subtitle { font-size: 0.875rem; color: #64748b; margin-bottom: 56px; }
+
+    .phases {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .phase {
+      border-radius: 14px;
+      border: 1px solid;
+      overflow: hidden;
+    }
+
+    .phase-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 11px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .phase-number {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .phase-title { font-size: 0.88rem; font-weight: 700; }
+    .phase-layer {
+      margin-left: auto;
+      font-size: 0.62rem;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: 20px;
+    }
+    .layer-backend  { background: rgba(139,92,246,0.12); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2); }
+    .layer-frontend { background: rgba(59,130,246,0.12);  color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
+    .layer-both     { background: rgba(16,185,129,0.12);  color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+
+    .phase-body {
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .step-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .step-num {
+      flex-shrink: 0;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      font-size: 0.62rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+
+    .step-content { flex: 1; }
+    .step-file {
+      font-size: 0.76rem;
+      font-family: 'Courier New', monospace;
+      font-weight: 600;
+    }
+    .step-note { font-size: 0.66rem; color: #64748b; margin-top: 2px; line-height: 1.4; }
+
+    .dep-tag {
+      display: inline-block;
+      font-size: 0.58rem;
+      padding: 1px 7px;
+      border-radius: 20px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    /* Phase colours */
+    .p-backend-models { border-color: #8b5cf6; }
+    .p-backend-models .phase-header { background: rgba(139,92,246,0.07); }
+    .p-backend-models .phase-number { background: rgba(139,92,246,0.18); color: #c4b5fd; }
+    .p-backend-models .phase-title  { color: #c4b5fd; }
+    .p-backend-models .step-num     { background: rgba(139,92,246,0.12); color: #c4b5fd; }
+    .p-backend-models .step-file    { color: #c4b5fd; }
+
+    .p-backend-services { border-color: #10b981; }
+    .p-backend-services .phase-header { background: rgba(16,185,129,0.07); }
+    .p-backend-services .phase-number { background: rgba(16,185,129,0.18); color: #34d399; }
+    .p-backend-services .phase-title  { color: #34d399; }
+    .p-backend-services .step-num     { background: rgba(16,185,129,0.12); color: #6ee7b7; }
+    .p-backend-services .step-file    { color: #6ee7b7; }
+
+    .p-backend-routes { border-color: #f59e0b; }
+    .p-backend-routes .phase-header { background: rgba(245,158,11,0.07); }
+    .p-backend-routes .phase-number { background: rgba(245,158,11,0.18); color: #fbbf24; }
+    .p-backend-routes .phase-title  { color: #fbbf24; }
+    .p-backend-routes .step-num     { background: rgba(245,158,11,0.12); color: #fde68a; }
+    .p-backend-routes .step-file    { color: #fde68a; }
+
+    .p-frontend-base { border-color: #3b82f6; }
+    .p-frontend-base .phase-header { background: rgba(59,130,246,0.07); }
+    .p-frontend-base .phase-number { background: rgba(59,130,246,0.18); color: #60a5fa; }
+    .p-frontend-base .phase-title  { color: #60a5fa; }
+    .p-frontend-base .step-num     { background: rgba(59,130,246,0.12); color: #93c5fd; }
+    .p-frontend-base .step-file    { color: #93c5fd; }
+
+    .p-frontend-ui { border-color: #0ea5e9; }
+    .p-frontend-ui .phase-header { background: rgba(14,165,233,0.07); }
+    .p-frontend-ui .phase-number { background: rgba(14,165,233,0.18); color: #38bdf8; }
+    .p-frontend-ui .phase-title  { color: #38bdf8; }
+    .p-frontend-ui .step-num     { background: rgba(14,165,233,0.12); color: #7dd3fc; }
+    .p-frontend-ui .step-file    { color: #7dd3fc; }
+
+    .p-wire { border-color: #f43f5e; }
+    .p-wire .phase-header { background: rgba(244,63,94,0.07); }
+    .p-wire .phase-number { background: rgba(244,63,94,0.18); color: #fb7185; }
+    .p-wire .phase-title  { color: #fb7185; }
+    .p-wire .step-num     { background: rgba(244,63,94,0.12); color: #fda4af; }
+    .p-wire .step-file    { color: #fda4af; }
+
+    /* Dep tag colours */
+    .dep-purple { background: rgba(139,92,246,0.12); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2); }
+    .dep-green  { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+    .dep-blue   { background: rgba(59,130,246,0.12); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
+    .dep-amber  { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+    .dep-sky    { background: rgba(14,165,233,0.12); color: #38bdf8; border: 1px solid rgba(14,165,233,0.2); }
+  </style>
+</head>
+<body>
+
+  <h1>Build Sequence</h1>
+  <p class="subtitle">Grasp — Adaptive Learning Assistant · 24 steps across 6 phases</p>
+
+  <div class="phases">
+
+    <!-- Phase 1: Backend Models -->
+    <div class="phase p-backend-models">
+      <div class="phase-header">
+        <div class="phase-number">1</div>
+        <div class="phase-title">Backend — Schemas &amp; Models</div>
+        <span class="phase-layer layer-backend">Backend</span>
+      </div>
+      <div class="phase-body">
+        <div class="step-row">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-file">backend/models/schemas.py</div>
+            <div class="step-note">Pydantic: ChatRequest, ChatResponse, SessionMeta, MemoryContext — define before anything else</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 2: Backend Services -->
+    <div class="phase p-backend-services">
+      <div class="phase-header">
+        <div class="phase-number">2</div>
+        <div class="phase-title">Backend — Core Services</div>
+        <span class="phase-layer layer-backend">Backend</span>
+      </div>
+      <div class="phase-body">
+        <div class="step-row">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-file">backend/services/chroma_service.py</div>
+            <div class="step-note">PersistentClient('./chroma_db'), 3 collections: sessions, conversation_turns, concepts_mastered</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-file">backend/services/gemini_service.py</div>
+            <div class="step-note">google-generativeai wrapper, model=gemini-2.0-flash, converts history role "assistant"→"model"</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-file">backend/prompts/tutor_prompt.py</div>
+            <div class="step-note">Socratic rules, GRASP_META JSON block, mastery gate instructions</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <div class="step-file">backend/services/memory_service.py
+              <span class="dep-tag dep-green">chroma_service</span>
+              <span class="dep-tag dep-green">tutor_prompt</span>
+            </div>
+            <div class="step-note">query prior concepts → format memory context → inject into Gemini system prompt</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 3: Backend Routes -->
+    <div class="phase p-backend-routes">
+      <div class="phase-header">
+        <div class="phase-number">3</div>
+        <div class="phase-title">Backend — Routers + App</div>
+        <span class="phase-layer layer-backend">Backend</span>
+      </div>
+      <div class="phase-body">
+        <div class="step-row">
+          <div class="step-num">6</div>
+          <div class="step-content">
+            <div class="step-file">backend/routers/health.py</div>
+            <div class="step-note">GET /api/health → {status, api_key_configured}. Frontend calls on load.</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">7</div>
+          <div class="step-content">
+            <div class="step-file">backend/routers/sessions.py
+              <span class="dep-tag dep-green">chroma_service</span>
+            </div>
+            <div class="step-note">POST /api/sessions (create), GET /api/sessions/{id} (retrieve history)</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">8</div>
+          <div class="step-content">
+            <div class="step-file">backend/routers/chat.py
+              <span class="dep-tag dep-green">gemini_service</span>
+              <span class="dep-tag dep-green">memory_service</span>
+              <span class="dep-tag dep-green">chroma_service</span>
+            </div>
+            <div class="step-note">POST /api/chat: retrieve memory → build prompt → call Gemini → parse meta → store turn → return response</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">9</div>
+          <div class="step-content">
+            <div class="step-file">backend/main.py
+              <span class="dep-tag dep-amber">all routers</span>
+            </div>
+            <div class="step-note">FastAPI app + CORS (allow localhost:5173) + include all routers</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 4: Frontend Base -->
+    <div class="phase p-frontend-base">
+      <div class="phase-header">
+        <div class="phase-number">4</div>
+        <div class="phase-title">Frontend — Base Layer</div>
+        <span class="phase-layer layer-frontend">Frontend</span>
+      </div>
+      <div class="phase-body">
+        <div class="step-row">
+          <div class="step-num">10</div>
+          <div class="step-content">
+            <div class="step-file">frontend/src/index.css</div>
+            <div class="step-note">All CSS custom properties — light + dark theme variables, mastery colours</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">11</div>
+          <div class="step-content">
+            <div class="step-file">frontend/src/utils/api.js</div>
+            <div class="step-note">Backend HTTP client: startSession(), sendMessage(), checkHealth(). Reads API key from localStorage → X-API-Key header</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">12</div>
+          <div class="step-content">
+            <div class="step-file">frontend/src/utils/parseMetadata.js</div>
+            <div class="step-note">Strips ---GRASP_META--- block → {cleanText, meta}</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">13</div>
+          <div class="step-content">
+            <div class="step-file">frontend/src/hooks/useTheme.js</div>
+            <div class="step-note">data-theme on &lt;html&gt;, localStorage persistence</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">14</div>
+          <div class="step-content">
+            <div class="step-file">frontend/src/hooks/useLearningSession.js
+              <span class="dep-tag dep-blue">api.js</span>
+              <span class="dep-tag dep-blue">parseMetadata</span>
+            </div>
+            <div class="step-note">All session state: messages, sessionMeta, sessionId, isLoading. Calls backend, updates state per turn.</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">15</div>
+          <div class="step-content">
+            <div class="step-file">frontend/src/App.jsx
+              <span class="dep-tag dep-blue">useLearningSession</span>
+              <span class="dep-tag dep-blue">useTheme</span>
+            </div>
+            <div class="step-note">3-screen router (setup|home|chat). Startup: checkHealth() → decide screen. Passes apiKey down.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 5: Frontend UI -->
+    <div class="phase p-frontend-ui">
+      <div class="phase-header">
+        <div class="phase-number">5</div>
+        <div class="phase-title">Frontend — UI Components</div>
+        <span class="phase-layer layer-frontend">Frontend</span>
+      </div>
+      <div class="phase-body">
+        <div class="step-row">
+          <div class="step-num">16</div>
+          <div class="step-content">
+            <div class="step-file">components/SetupScreen.jsx
+              <span class="dep-tag dep-sky">App state</span>
+            </div>
+            <div class="step-note">Gemini key input (password), visibility toggle, AI Studio link, saveApiKey() on submit</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">17</div>
+          <div class="step-content">
+            <div class="step-file">components/TopicSelection.jsx</div>
+            <div class="step-note">8 topic cards + custom input + theme toggle</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">18</div>
+          <div class="step-content">
+            <div class="step-file">components/MessageBubble.jsx</div>
+            <div class="step-note">User/AI bubbles, markdown, timestamp — no deps</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">19</div>
+          <div class="step-content">
+            <div class="step-file">components/ChatInput.jsx</div>
+            <div class="step-note">Auto-resize textarea, Enter/Shift+Enter, disabled while loading — no deps</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">20</div>
+          <div class="step-content">
+            <div class="step-file">components/ChatArea.jsx
+              <span class="dep-tag dep-sky">MessageBubble</span>
+            </div>
+            <div class="step-note">Scrollable list + typing indicator + auto-scroll</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">21</div>
+          <div class="step-content">
+            <div class="step-file">components/ProgressPanel.jsx</div>
+            <div class="step-note">Mastery bar, difficulty badge, concept tag cloud — no deps</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">22</div>
+          <div class="step-content">
+            <div class="step-file">components/ChatHeader.jsx</div>
+            <div class="step-note">Topic, concept count, strategy badge, progress toggle — no deps</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">23</div>
+          <div class="step-content">
+            <div class="step-file">components/ChatSession.jsx
+              <span class="dep-tag dep-sky">ChatHeader</span>
+              <span class="dep-tag dep-sky">ProgressPanel</span>
+              <span class="dep-tag dep-sky">ChatArea</span>
+              <span class="dep-tag dep-sky">ChatInput</span>
+            </div>
+            <div class="step-note">Full chat layout, composes all sub-components</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 6: Wire-Up -->
+    <div class="phase p-wire">
+      <div class="phase-header">
+        <div class="phase-number">6</div>
+        <div class="phase-title">Wire-Up, Integration &amp; Polish</div>
+        <span class="phase-layer layer-both">Full Stack</span>
+      </div>
+      <div class="phase-body">
+        <div class="step-row">
+          <div class="step-num">24</div>
+          <div class="step-content">
+            <div class="step-file">App.jsx routing + E2E test</div>
+            <div class="step-note">Wire SetupScreen → TopicSelection → ChatSession. Test: enter key → select topic → send message → verify ChromaDB stores concept → verify memory retrieved next session.</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">25</div>
+          <div class="step-content">
+            <div class="step-file">Polish pass</div>
+            <div class="step-note">Animations, a11y labels, mobile layout, error toasts, .gitignore chroma_db/, README with backend + frontend setup.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

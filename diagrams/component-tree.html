@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grasp — Component Tree</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f1117;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 24px 64px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #a78bfa;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .subtitle { font-size: 0.875rem; color: #64748b; margin-bottom: 56px; }
+
+    .tree {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 960px;
+    }
+
+    .root-node {
+      padding: 12px 28px;
+      border-radius: 10px;
+      background: rgba(139,92,246,0.15);
+      border: 2px solid #7c3aed;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #c4b5fd;
+      box-shadow: 0 0 30px rgba(124,58,237,0.2);
+    }
+
+    .stem       { width: 2px; background: #334155; }
+    .h-line     { position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #334155; }
+    .drop       { width: 2px; background: #334155; }
+
+    .branch-bar {
+      display: flex;
+      align-items: flex-start;
+      position: relative;
+      width: 100%;
+    }
+
+    .branch-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .comp {
+      padding: 9px 12px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-align: center;
+      min-width: 110px;
+      border: 1.5px solid;
+      transition: transform 0.15s ease;
+      cursor: default;
+    }
+    .comp:hover { transform: translateY(-2px); }
+
+    .comp-blue   { background: rgba(59,130,246,0.1);  border-color: #3b82f6; color: #93c5fd; }
+    .comp-green  { background: rgba(16,185,129,0.1);  border-color: #10b981; color: #6ee7b7; }
+    .comp-amber  { background: rgba(245,158,11,0.1);  border-color: #f59e0b; color: #fde68a; }
+    .comp-rose   { background: rgba(244,63,94,0.1);   border-color: #f43f5e; color: #fda4af; }
+    .comp-sky    { background: rgba(14,165,233,0.1);  border-color: #0ea5e9; color: #7dd3fc; }
+    .comp-purple { background: rgba(139,92,246,0.1);  border-color: #8b5cf6; color: #c4b5fd; }
+    .comp-teal   { background: rgba(20,184,166,0.1);  border-color: #14b8a6; color: #5eead4; }
+
+    .leaves { margin-top: 8px; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .leaf-stem { width: 2px; height: 14px; background: #1e293b; }
+    .leaf {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.64rem;
+      color: #64748b;
+      background: #1e293b;
+      border: 1px solid #334155;
+      white-space: nowrap;
+    }
+
+    /* Screen labels */
+    .screen-badge {
+      font-size: 0.58rem;
+      padding: 1px 7px;
+      border-radius: 20px;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+    .sb-rose   { background: rgba(244,63,94,0.15); color: #fda4af; border: 1px solid rgba(244,63,94,0.25); }
+    .sb-blue   { background: rgba(59,130,246,0.15); color: #93c5fd; border: 1px solid rgba(59,130,246,0.25); }
+    .sb-green  { background: rgba(16,185,129,0.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.25); }
+
+    /* Sections */
+    .section { margin-top: 52px; width: 100%; max-width: 960px; }
+    .section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #475569;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .hooks-row { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+    .hook-card {
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 14px 18px;
+      background: #1e293b;
+      min-width: 200px;
+      flex: 1;
+      max-width: 260px;
+    }
+    .hook-name  { font-size: 0.78rem; font-weight: 600; color: #a78bfa; margin-bottom: 6px; font-family: 'Courier New', monospace; }
+    .hook-desc  { font-size: 0.67rem; color: #64748b; line-height: 1.5; }
+
+    .utils-row  { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 14px; }
+    .util-chip {
+      padding: 6px 16px;
+      border-radius: 8px;
+      font-size: 0.72rem;
+      font-family: 'Courier New', monospace;
+    }
+    .util-green { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); color: #6ee7b7; }
+    .util-sky   { background: rgba(14,165,233,0.08); border: 1px solid rgba(14,165,233,0.2); color: #7dd3fc; }
+  </style>
+</head>
+<body>
+
+  <h1>Component Tree</h1>
+  <p class="subtitle">Grasp — Adaptive Learning Assistant</p>
+
+  <div class="tree">
+
+    <!-- Root -->
+    <div class="root-node">App.jsx</div>
+    <div class="stem" style="height:28px"></div>
+
+    <!-- Level 1: 3 branches — SetupScreen | TopicSelection | ChatSession -->
+    <div class="branch-bar">
+      <div class="h-line"></div>
+
+      <!-- SetupScreen -->
+      <div class="branch-col">
+        <div class="drop" style="height:26px"></div>
+        <div class="comp comp-rose">
+          SetupScreen.jsx
+          <span class="screen-badge sb-rose">Screen 0</span>
+        </div>
+        <div class="leaves">
+          <div class="leaf-stem"></div>
+          <div class="leaf">Gemini key input</div>
+          <div class="leaf-stem"></div>
+          <div class="leaf">localStorage save</div>
+          <div class="leaf-stem"></div>
+          <div class="leaf">X-API-Key header</div>
+          <div class="leaf-stem"></div>
+          <div class="leaf">AI Studio link</div>
+        </div>
+      </div>
+
+      <!-- TopicSelection -->
+      <div class="branch-col">
+        <div class="drop" style="height:26px"></div>
+        <div class="comp comp-blue">
+          TopicSelection.jsx
+          <span class="screen-badge sb-blue">Screen 1</span>
+        </div>
+        <div class="leaves">
+          <div class="leaf-stem"></div>
+          <div class="leaf">8 preset cards</div>
+          <div class="leaf-stem"></div>
+          <div class="leaf">Custom topic input</div>
+          <div class="leaf-stem"></div>
+          <div class="leaf">Theme toggle</div>
+        </div>
+      </div>
+
+      <!-- ChatSession + children -->
+      <div class="branch-col" style="flex:2.2">
+        <div class="drop" style="height:26px"></div>
+        <div class="comp comp-green" style="min-width:160px">
+          ChatSession.jsx
+          <span class="screen-badge sb-green">Screen 2</span>
+        </div>
+
+        <!-- Level 2 inside ChatSession -->
+        <div class="stem" style="height:22px"></div>
+        <div class="branch-bar" style="width:100%">
+          <div class="h-line"></div>
+
+          <div class="branch-col">
+            <div class="drop" style="height:22px"></div>
+            <div class="comp comp-sky" style="font-size:0.68rem">ChatHeader.jsx</div>
+            <div class="leaves">
+              <div class="leaf-stem"></div>
+              <div class="leaf">Topic + back btn</div>
+              <div class="leaf-stem"></div>
+              <div class="leaf">Concept count</div>
+              <div class="leaf-stem"></div>
+              <div class="leaf">Strategy badge</div>
+              <div class="leaf-stem"></div>
+              <div class="leaf">Progress toggle</div>
+            </div>
+          </div>
+
+          <div class="branch-col">
+            <div class="drop" style="height:22px"></div>
+            <div class="comp comp-purple" style="font-size:0.68rem">ProgressPanel.jsx</div>
+            <div class="leaves">
+              <div class="leaf-stem"></div>
+              <div class="leaf">Mastery bar</div>
+              <div class="leaf-stem"></div>
+              <div class="leaf">Difficulty badge</div>
+              <div class="leaf-stem"></div>
+              <div class="leaf">Concept tag cloud</div>
+            </div>
+          </div>
+
+          <div class="branch-col">
+            <div class="drop" style="height:22px"></div>
+            <div class="comp comp-amber" style="font-size:0.68rem">ChatArea.jsx</div>
+            <div class="leaves">
+              <div class="leaf-stem"></div>
+              <div class="leaf">MessageBubble.jsx</div>
+              <div class="leaf-stem"></div>
+              <div class="leaf">Typing indicator</div>
+              <div class="leaf-stem"></div>
+              <div class="leaf">Auto-scroll ref</div>
+            </div>
+          </div>
+
+          <div class="branch-col">
+            <div class="drop" style="height:22px"></div>
+            <div class="comp comp-teal" style="font-size:0.68rem">ChatInput.jsx</div>
+            <div class="leaves">
+              <div class="leaf-stem"></div>
+              <div class="leaf">Auto-resize textarea</div>
+              <div class="leaf-stem"></div>
+              <div class="leaf">Send button</div>
+              <div class="leaf-stem"></div>
+              <div class="leaf">Enter / Shift+Enter</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Custom Hooks -->
+  <div class="section">
+    <div class="section-title">Custom Hooks</div>
+    <div class="hooks-row">
+      <div class="hook-card">
+        <div class="hook-name">useLearningSession.js</div>
+        <div class="hook-desc">Owns all session state. Calls <code style="color:#6ee7b7">api.js</code> (backend), receives pre-parsed metadata, updates messages and sessionMeta per turn. Stores sessionId from backend.</div>
+      </div>
+      <div class="hook-card">
+        <div class="hook-name">useTheme.js</div>
+        <div class="hook-desc">Toggles <code style="color:#6ee7b7">data-theme</code> on &lt;html&gt;. Reads/writes to localStorage for persistence across reloads.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Utils -->
+  <div class="section">
+    <div class="section-title">Utility Modules (Frontend)</div>
+    <div class="utils-row">
+      <div class="util-chip util-green">api.js — backend HTTP client</div>
+      <div class="util-chip util-green">parseMetadata.js — JSON block parser</div>
+    </div>
+  </div>
+
+  <!-- Backend -->
+  <div class="section">
+    <div class="section-title">Backend Services (Python FastAPI)</div>
+    <div class="utils-row">
+      <div class="util-chip util-sky">gemini_service.py</div>
+      <div class="util-chip util-sky">chroma_service.py</div>
+      <div class="util-chip util-sky">memory_service.py</div>
+      <div class="util-chip util-sky">tutor_prompt.py</div>
+      <div class="util-chip util-sky">schemas.py</div>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grasp — System Architecture</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f1117;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 24px 64px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #a78bfa;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 0.875rem;
+      color: #64748b;
+      margin-bottom: 56px;
+    }
+
+    .arch {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      width: 100%;
+      max-width: 760px;
+    }
+
+    .layer {
+      width: 100%;
+      border: 1.5px solid;
+      border-radius: 16px;
+      padding: 20px 24px;
+      position: relative;
+    }
+
+    .layer-label {
+      position: absolute;
+      top: -12px;
+      left: 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 2px 10px;
+      border-radius: 20px;
+    }
+
+    /* Layers */
+    .layer-frontend { border-color: #3b82f6; background: rgba(59,130,246,0.05); }
+    .layer-frontend .layer-label { background: #1e3a5f; color: #60a5fa; }
+
+    .layer-backend  { border-color: #8b5cf6; background: rgba(139,92,246,0.05); margin: 0 0px; }
+    .layer-backend  .layer-label { background: #2d1b69; color: #a78bfa; }
+
+    .layer-leaf {
+      display: flex;
+      gap: 16px;
+      flex-wrap: nowrap;
+    }
+
+    .layer-gemini { border-color: #10b981; background: rgba(16,185,129,0.05); flex: 1; }
+    .layer-gemini .layer-label { background: #052e16; color: #34d399; }
+
+    .layer-chroma { border-color: #f59e0b; background: rgba(245,158,11,0.05); flex: 1.4; }
+    .layer-chroma .layer-label { background: #451a03; color: #fbbf24; }
+
+    /* Inner grid */
+    .inner-grid {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .box {
+      flex: 1;
+      min-width: 130px;
+      border-radius: 10px;
+      padding: 12px 14px;
+      border: 1px solid;
+    }
+
+    .box-title { font-size: 0.78rem; font-weight: 700; margin-bottom: 8px; }
+    .box-items { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+    .box-items li { font-size: 0.68rem; color: #94a3b8; display: flex; align-items: center; gap: 6px; }
+    .box-items li::before { content: '–'; opacity: 0.4; }
+
+    .box-blue   { border-color: rgba(59,130,246,0.3);  background: rgba(59,130,246,0.08);  }
+    .box-blue   .box-title { color: #93c5fd; }
+    .box-purple { border-color: rgba(139,92,246,0.3);  background: rgba(139,92,246,0.08);  }
+    .box-purple .box-title { color: #c4b5fd; }
+    .box-green  { border-color: rgba(16,185,129,0.3);  background: rgba(16,185,129,0.08);  }
+    .box-green  .box-title { color: #6ee7b7; }
+    .box-amber  { border-color: rgba(245,158,11,0.3);  background: rgba(245,158,11,0.08);  }
+    .box-amber  .box-title { color: #fde68a; }
+    .box-rose   { border-color: rgba(244,63,94,0.3);   background: rgba(244,63,94,0.08);   }
+    .box-rose   .box-title { color: #fda4af; }
+
+    /* State chips */
+    .state-items { display: flex; gap: 8px; flex-wrap: wrap; }
+    .state-chip {
+      font-size: 0.7rem;
+      color: #c4b5fd;
+      background: rgba(139,92,246,0.1);
+      border: 1px solid rgba(139,92,246,0.22);
+      border-radius: 20px;
+      padding: 3px 10px;
+    }
+
+    /* Connector */
+    .connector {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 6px 0;
+    }
+    .connector-line { width: 2px; height: 22px; background: linear-gradient(to bottom, #4b5563, #6b7280); }
+    .connector-label {
+      font-size: 0.62rem; color: #475569; white-space: nowrap;
+      padding: 2px 8px; background: #1e293b; border: 1px solid #334155;
+      border-radius: 20px; z-index: 1;
+    }
+    .connector-arrow {
+      width: 0; height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 7px solid #4b5563;
+    }
+
+    /* Side connector (between Gemini and Chroma) */
+    .leaf-connector {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 6px 0;
+    }
+    .leaf-connector-line { height: 22px; width: 2px; background: #334155; }
+    .leaf-connector-arrow {
+      width: 0; height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 7px solid #334155;
+    }
+
+    /* Collection tags */
+    .coll-tag {
+      font-size: 0.68rem;
+      padding: 3px 10px;
+      border-radius: 6px;
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.22);
+      color: #fde68a;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    /* JSON block */
+    .json-block {
+      font-family: 'Courier New', monospace;
+      font-size: 0.66rem;
+      color: #86efac;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid rgba(16,185,129,0.18);
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-top: 10px;
+      line-height: 1.7;
+    }
+    .json-key { color: #93c5fd; }
+    .json-str { color: #fde68a; }
+    .json-comment { color: #3f4f65; }
+
+    /* Header badge */
+    .setup-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.65rem;
+      color: #fda4af;
+      background: rgba(244,63,94,0.1);
+      border: 1px solid rgba(244,63,94,0.2);
+      border-radius: 20px;
+      padding: 2px 10px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>System Architecture</h1>
+  <p class="subtitle">Grasp — Adaptive Learning Assistant</p>
+
+  <div class="arch">
+
+    <!-- Frontend Layer -->
+    <div class="layer layer-frontend">
+      <span class="layer-label">Frontend — React + Vite</span>
+      <div class="inner-grid">
+        <div class="box box-rose">
+          <div class="box-title">Setup Screen <span class="setup-badge">Screen 0</span></div>
+          <ul class="box-items">
+            <li>Gemini API key input</li>
+            <li>Saved to localStorage</li>
+            <li>Sent as X-API-Key header</li>
+          </ul>
+        </div>
+        <div class="box box-blue">
+          <div class="box-title">Chat UI</div>
+          <ul class="box-items">
+            <li>TopicSelection (Screen 1)</li>
+            <li>ChatSession (Screen 2)</li>
+            <li>MessageBubble</li>
+            <li>ChatInput</li>
+          </ul>
+        </div>
+        <div class="box box-blue">
+          <div class="box-title">Progress Panel</div>
+          <ul class="box-items">
+            <li>ChatHeader</li>
+            <li>ProgressPanel</li>
+            <li>Strategy badge</li>
+            <li>Concept tag cloud</li>
+          </ul>
+        </div>
+        <div class="box box-amber">
+          <div class="box-title">State + Theme</div>
+          <ul class="box-items">
+            <li>useLearningSession</li>
+            <li>useTheme (CSS vars)</li>
+            <li>Light / Dark</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connector 1 -->
+    <div class="connector">
+      <div class="connector-line"></div>
+      <div class="connector-label">HTTP · /api/* · X-API-Key header · Vite proxy → localhost:8000</div>
+      <div class="connector-line"></div>
+      <div class="connector-arrow"></div>
+    </div>
+
+    <!-- Backend Layer -->
+    <div class="layer layer-backend">
+      <span class="layer-label">Backend — Python FastAPI</span>
+      <div class="inner-grid">
+        <div class="box box-purple">
+          <div class="box-title">Routers</div>
+          <ul class="box-items">
+            <li>POST /api/chat</li>
+            <li>POST /api/sessions</li>
+            <li>GET  /api/sessions/{id}</li>
+            <li>GET  /api/health</li>
+          </ul>
+        </div>
+        <div class="box box-purple">
+          <div class="box-title">Services</div>
+          <ul class="box-items">
+            <li>gemini_service.py</li>
+            <li>chroma_service.py</li>
+            <li>memory_service.py</li>
+          </ul>
+        </div>
+        <div class="box box-purple">
+          <div class="box-title">Prompts</div>
+          <ul class="box-items">
+            <li>Socratic rules</li>
+            <li>Memory context inject</li>
+            <li>JSON block format</li>
+            <li>Mastery gate logic</li>
+          </ul>
+        </div>
+        <div class="box box-purple">
+          <div class="box-title">Models</div>
+          <div style="margin-top:6px">
+            <div class="state-items">
+              <span class="state-chip">ChatRequest</span>
+              <span class="state-chip">ChatResponse</span>
+              <span class="state-chip">SessionMeta</span>
+              <span class="state-chip">MemoryContext</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connector 2 — splits to Gemini + Chroma -->
+    <div class="connector">
+      <div class="connector-line"></div>
+      <div class="connector-label">parallel service calls</div>
+      <div class="connector-line"></div>
+      <div class="connector-arrow"></div>
+    </div>
+
+    <!-- Leaf layer: Gemini + ChromaDB side by side -->
+    <div class="layer-leaf">
+
+      <!-- Gemini -->
+      <div class="layer layer-gemini" style="position:relative; min-width:0;">
+        <span class="layer-label">Gemini API</span>
+        <div class="box box-green" style="border:none; background:transparent; padding:0;">
+          <ul class="box-items" style="margin-bottom:8px;">
+            <li>Model: gemini-2.0-flash</li>
+            <li>system_instruction param</li>
+            <li>Chat history (last 20 turns)</li>
+            <li>max_output_tokens: 1024</li>
+          </ul>
+          <div class="json-block">
+<span class="json-comment">// Response format</span>
+<br>What do you think happens
+<br>when a function closes over...
+<br><br>---GRASP_META---
+<br>{
+<br>&nbsp;<span class="json-key">"mastery_signals"</span>: <span class="json-str">"emerging"</span>,
+<br>&nbsp;<span class="json-key">"teaching_strategy"</span>: <span class="json-str">"socratic"</span>
+<br>}
+<br>---END_META---
+          </div>
+        </div>
+      </div>
+
+      <!-- ChromaDB -->
+      <div class="layer layer-chroma" style="position:relative; min-width:0;">
+        <span class="layer-label">ChromaDB — Persistent Embedded</span>
+        <div style="margin-bottom:6px; font-size:0.68rem; color:#78716c;">path: ./backend/chroma_db/</div>
+        <span class="coll-tag">📦 sessions — one doc per session</span>
+        <span class="coll-tag">💬 conversation_turns — one doc per message</span>
+        <span class="coll-tag">🏆 concepts_mastered — one doc per mastered concept</span>
+        <div style="margin-top:10px; font-size:0.68rem; color:#64748b; line-height:1.6;">
+          <strong style="color:#fbbf24;">Write:</strong> after each AI turn + on mastery gate pass<br>
+          <strong style="color:#fbbf24;">Read:</strong> at session start → inject into Gemini system prompt
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</body>
+</html>

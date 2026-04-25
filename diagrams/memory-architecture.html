@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grasp — Memory Architecture</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f1117;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 48px 24px 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #fbbf24;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .subtitle { font-size: 0.875rem; color: #64748b; margin-bottom: 56px; }
+
+    /* ─── Two-column layout ─── */
+    .layout {
+      display: flex;
+      gap: 40px;
+      width: 100%;
+      max-width: 1000px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .col { flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 20px; }
+
+    /* ─── Section card ─── */
+    .card {
+      border-radius: 14px;
+      border: 1.5px solid;
+      padding: 18px 20px;
+      position: relative;
+    }
+
+    .card-label {
+      position: absolute;
+      top: -11px; left: 16px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 2px 10px;
+      border-radius: 20px;
+    }
+
+    .card-amber { border-color: #f59e0b; background: rgba(245,158,11,0.05); }
+    .card-amber .card-label { background: #451a03; color: #fbbf24; }
+
+    .card-green { border-color: #10b981; background: rgba(16,185,129,0.05); }
+    .card-green .card-label { background: #052e16; color: #34d399; }
+
+    .card-blue  { border-color: #3b82f6; background: rgba(59,130,246,0.05); }
+    .card-blue  .card-label { background: #1e3a5f; color: #60a5fa; }
+
+    .card-purple { border-color: #8b5cf6; background: rgba(139,92,246,0.05); }
+    .card-purple .card-label { background: #2d1b69; color: #a78bfa; }
+
+    /* ─── Collection block ─── */
+    .collection {
+      border-radius: 10px;
+      border: 1px solid;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+    .collection:last-child { margin-bottom: 0; }
+
+    .coll-amber  { border-color: rgba(245,158,11,0.3);  background: rgba(245,158,11,0.07); }
+    .coll-green  { border-color: rgba(16,185,129,0.3);  background: rgba(16,185,129,0.07); }
+    .coll-purple { border-color: rgba(139,92,246,0.3);  background: rgba(139,92,246,0.07); }
+
+    .coll-name {
+      font-size: 0.8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .coll-amber  .coll-name { color: #fde68a; }
+    .coll-green  .coll-name { color: #6ee7b7; }
+    .coll-purple .coll-name { color: #c4b5fd; }
+
+    .field-list { display: flex; flex-direction: column; gap: 4px; }
+    .field {
+      font-size: 0.68rem;
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+    .field-key   { color: #93c5fd; font-family: 'Courier New', monospace; flex-shrink: 0; }
+    .field-value { color: #64748b; font-style: italic; }
+
+    /* ─── Flow steps ─── */
+    .flow-steps { display: flex; flex-direction: column; gap: 0; }
+
+    .flow-step {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      position: relative;
+    }
+    .flow-step:last-child { border-bottom: none; }
+
+    .step-icon {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .si-amber  { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); }
+    .si-green  { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); }
+    .si-blue   { background: rgba(59,130,246,0.15);  border: 1px solid rgba(59,130,246,0.3);  }
+    .si-purple { background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3); }
+
+    .step-body { flex: 1; }
+    .step-title { font-size: 0.78rem; font-weight: 600; color: #e2e8f0; margin-bottom: 3px; }
+    .step-desc  { font-size: 0.68rem; color: #64748b; line-height: 1.5; }
+
+    .step-arrow {
+      position: absolute;
+      left: 14px; bottom: -10px;
+      font-size: 0.7rem;
+      color: #334155;
+    }
+
+    /* ─── Connector arrow between columns ─── */
+    .divider-arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding-top: 80px;
+      width: 40px;
+      flex-shrink: 0;
+    }
+    .d-line { width: 2px; height: 40px; background: #334155; }
+    .d-label {
+      font-size: 0.58rem;
+      color: #475569;
+      text-align: center;
+      writing-mode: vertical-rl;
+      margin: 6px 0;
+      white-space: nowrap;
+    }
+    .d-arrow {
+      width: 0; height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 7px solid #334155;
+    }
+
+    /* ─── Code block ─── */
+    .code-block {
+      font-family: 'Courier New', monospace;
+      font-size: 0.66rem;
+      line-height: 1.7;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 10px 13px;
+      margin-top: 8px;
+      color: #94a3b8;
+    }
+    .code-key     { color: #93c5fd; }
+    .code-str     { color: #fde68a; }
+    .code-comment { color: #334155; }
+    .code-func    { color: #c4b5fd; }
+
+    /* ─── Tag row ─── */
+    .tag-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .tag {
+      font-size: 0.68rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .tag-amber  { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); color: #fbbf24; }
+    .tag-green  { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #34d399; }
+    .tag-purple { background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.2); color: #a78bfa; }
+  </style>
+</head>
+<body>
+
+  <h1>Memory Architecture</h1>
+  <p class="subtitle">Grasp — ChromaDB Persistent Learning Memory</p>
+
+  <div class="layout">
+
+    <!-- Left column: ChromaDB Collections -->
+    <div class="col">
+
+      <div class="card card-amber">
+        <span class="card-label">ChromaDB Collections</span>
+
+        <!-- sessions -->
+        <div class="collection coll-amber">
+          <div class="coll-name">📦 sessions</div>
+          <div class="field-list">
+            <div class="field"><span class="field-key">doc:</span><span class="field-value">"{topic} session started {date}"</span></div>
+            <div class="field"><span class="field-key">topic</span><span class="field-value">string — topic name</span></div>
+            <div class="field"><span class="field-key">started_at</span><span class="field-value">ISO timestamp</span></div>
+            <div class="field"><span class="field-key">total_concepts</span><span class="field-value">int</span></div>
+            <div class="field"><span class="field-key">final_difficulty</span><span class="field-value">beginner|intermediate|advanced</span></div>
+          </div>
+        </div>
+
+        <!-- conversation_turns -->
+        <div class="collection coll-green">
+          <div class="coll-name">💬 conversation_turns</div>
+          <div class="field-list">
+            <div class="field"><span class="field-key">doc:</span><span class="field-value">"{role}: {message content}"</span></div>
+            <div class="field"><span class="field-key">session_id</span><span class="field-value">string</span></div>
+            <div class="field"><span class="field-key">role</span><span class="field-value">user | assistant</span></div>
+            <div class="field"><span class="field-key">timestamp</span><span class="field-value">ISO timestamp</span></div>
+            <div class="field"><span class="field-key">mastery_signals</span><span class="field-value">none|emerging|developing|solid</span></div>
+            <div class="field"><span class="field-key">teaching_strategy</span><span class="field-value">socratic|analogies|…</span></div>
+          </div>
+        </div>
+
+        <!-- concepts_mastered -->
+        <div class="collection coll-purple">
+          <div class="coll-name">🏆 concepts_mastered</div>
+          <div class="field-list">
+            <div class="field"><span class="field-key">doc:</span><span class="field-value">"{concept} in {topic}"</span></div>
+            <div class="field"><span class="field-key">session_id</span><span class="field-value">string</span></div>
+            <div class="field"><span class="field-key">topic</span><span class="field-value">string</span></div>
+            <div class="field"><span class="field-key">mastery_level</span><span class="field-value">solid</span></div>
+            <div class="field"><span class="field-key">strategy_that_worked</span><span class="field-value">string</span></div>
+            <div class="field"><span class="field-key">mastered_at</span><span class="field-value">ISO timestamp</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Embedding note -->
+      <div class="card card-purple">
+        <span class="card-label">Embedding Strategy</span>
+        <div style="font-size:0.72rem; color:#94a3b8; line-height:1.6; margin-bottom:10px;">
+          ChromaDB uses <strong style="color:#c4b5fd;">sentence-transformers</strong> (all-MiniLM-L6-v2) as the default embedding function — runs locally, no extra API calls.
+        </div>
+        <div class="tag-row">
+          <span class="tag tag-purple">No Gemini Embedding API needed</span>
+          <span class="tag tag-purple">Runs in-process</span>
+          <span class="tag tag-purple">Semantic similarity search</span>
+        </div>
+        <div class="code-block">
+<span class="code-comment"># chroma_service.py</span>
+<br>client = chromadb.<span class="code-func">PersistentClient</span>(
+<br>&nbsp;&nbsp;path=<span class="code-str">"./chroma_db"</span>
+<br>)
+<br><span class="code-comment"># Default embedding = sentence-transformers</span>
+<br>col = client.<span class="code-func">get_or_create_collection</span>(
+<br>&nbsp;&nbsp;<span class="code-str">"concepts_mastered"</span>
+<br>)
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right column: Write + Read flows -->
+    <div class="col">
+
+      <!-- Write Flow -->
+      <div class="card card-green">
+        <span class="card-label">Write Flow — After Each AI Turn</span>
+        <div class="flow-steps">
+
+          <div class="flow-step">
+            <div class="step-icon si-blue">1</div>
+            <div class="step-body">
+              <div class="step-title">Gemini returns response</div>
+              <div class="step-desc">Backend receives raw text including ---GRASP_META--- block</div>
+            </div>
+            <span class="step-arrow">↓</span>
+          </div>
+
+          <div class="flow-step">
+            <div class="step-icon si-green">2</div>
+            <div class="step-body">
+              <div class="step-title">Parse metadata</div>
+              <div class="step-desc">Extract mastery_signals, teaching_strategy, current_concept from JSON block</div>
+            </div>
+            <span class="step-arrow">↓</span>
+          </div>
+
+          <div class="flow-step">
+            <div class="step-icon si-green">3</div>
+            <div class="step-body">
+              <div class="step-title">Store turn → conversation_turns</div>
+              <div class="step-desc">chroma_service.store_turn(session_id, role, content, meta)</div>
+            </div>
+            <span class="step-arrow">↓</span>
+          </div>
+
+          <div class="flow-step">
+            <div class="step-icon si-amber">4</div>
+            <div class="step-body">
+              <div class="step-title">Mastery gate check</div>
+              <div class="step-desc">If mastery_signals == "solid" → proceed to step 5, else skip</div>
+            </div>
+            <span class="step-arrow">↓</span>
+          </div>
+
+          <div class="flow-step">
+            <div class="step-icon si-amber">5</div>
+            <div class="step-body">
+              <div class="step-title">Store concept → concepts_mastered</div>
+              <div class="step-desc">chroma_service.store_concept(session_id, topic, concept, "solid", strategy)</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Read Flow -->
+      <div class="card card-blue">
+        <span class="card-label">Read Flow — Session Start</span>
+        <div class="flow-steps">
+
+          <div class="flow-step">
+            <div class="step-icon si-blue">1</div>
+            <div class="step-body">
+              <div class="step-title">User selects topic</div>
+              <div class="step-desc">Frontend POSTs to /api/sessions with { topic }</div>
+            </div>
+            <span class="step-arrow">↓</span>
+          </div>
+
+          <div class="flow-step">
+            <div class="step-icon si-blue">2</div>
+            <div class="step-body">
+              <div class="step-title">Query concepts_mastered</div>
+              <div class="step-desc">WHERE topic == selected_topic → returns list of prior mastered concepts</div>
+            </div>
+            <span class="step-arrow">↓</span>
+          </div>
+
+          <div class="flow-step">
+            <div class="step-icon si-blue">3</div>
+            <div class="step-body">
+              <div class="step-title">Query sessions</div>
+              <div class="step-desc">Retrieve last known difficulty_level for this topic</div>
+            </div>
+            <span class="step-arrow">↓</span>
+          </div>
+
+          <div class="flow-step">
+            <div class="step-icon si-purple">4</div>
+            <div class="step-body">
+              <div class="step-title">Build memory context string</div>
+              <div class="step-desc">memory_service.build_memory_context(topic) → formatted text block</div>
+            </div>
+            <span class="step-arrow">↓</span>
+          </div>
+
+          <div class="flow-step">
+            <div class="step-icon si-purple">5</div>
+            <div class="step-body">
+              <div class="step-title">Inject into Gemini system prompt</div>
+              <div class="step-desc">"Learner previously mastered: closures, scope (intermediate). Build on this foundation."</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

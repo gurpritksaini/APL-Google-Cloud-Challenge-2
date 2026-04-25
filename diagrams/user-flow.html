@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grasp — User Flow</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f1117;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 48px 24px 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #a78bfa;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .subtitle { font-size: 0.875rem; color: #64748b; margin-bottom: 56px; }
+
+    .flow-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+      width: 100%;
+      max-width: 1100px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+
+    .screen {
+      flex-shrink: 0;
+      width: 185px;
+      border-radius: 14px;
+      border: 1.5px solid;
+      overflow: hidden;
+      transition: transform 0.2s ease;
+      cursor: default;
+    }
+    .screen:hover { transform: translateY(-4px); }
+
+    .screen-header {
+      padding: 8px 12px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .screen-body { padding: 12px; min-height: 180px; }
+
+    /* Screen 0: Setup */
+    .s-setup { border-color: #f43f5e; background: rgba(244,63,94,0.04); }
+    .s-setup .screen-header { background: rgba(244,63,94,0.1); color: #fda4af; }
+
+    .key-input {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(244,63,94,0.3);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 0.6rem;
+      color: #fda4af;
+      margin-bottom: 8px;
+    }
+
+    .start-btn {
+      display: block;
+      width: 100%;
+      text-align: center;
+      padding: 6px 0;
+      border-radius: 6px;
+      font-size: 0.62rem;
+      font-weight: 600;
+    }
+    .start-btn-rose { background: rgba(244,63,94,0.15); border: 1px solid rgba(244,63,94,0.3); color: #fda4af; }
+    .start-btn-blue { background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); color: #93c5fd; }
+    .start-btn-amber{ background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); color: #fbbf24; }
+
+    .setup-note { font-size: 0.58rem; color: #64748b; line-height: 1.5; margin-bottom: 10px; }
+    .link-chip {
+      font-size: 0.58rem;
+      color: #60a5fa;
+      text-decoration: underline;
+      cursor: default;
+    }
+
+    /* Screen 1: Home */
+    .s-home { border-color: #3b82f6; background: rgba(59,130,246,0.04); }
+    .s-home .screen-header { background: rgba(59,130,246,0.1); color: #60a5fa; }
+
+    .topic-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      margin-bottom: 8px;
+    }
+
+    .topic-card {
+      background: rgba(59,130,246,0.1);
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 5px;
+      padding: 5px 3px;
+      font-size: 0.58rem;
+      color: #93c5fd;
+      text-align: center;
+    }
+
+    .custom-input {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid #334155;
+      border-radius: 5px;
+      padding: 5px 7px;
+      font-size: 0.58rem;
+      color: #64748b;
+    }
+
+    /* Screen 2: Chat */
+    .s-chat { border-color: #8b5cf6; background: rgba(139,92,246,0.04); }
+    .s-chat .screen-header { background: rgba(139,92,246,0.1); color: #a78bfa; }
+
+    .msg {
+      border-radius: 5px;
+      padding: 5px 7px;
+      font-size: 0.58rem;
+      line-height: 1.4;
+      margin-bottom: 5px;
+    }
+    .msg-ai   { background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.2); color: #c4b5fd; }
+    .msg-user { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); color: #93c5fd; margin-left: auto; max-width: 85%; }
+    .chat-area { display: flex; flex-direction: column; }
+    .chat-input-bar {
+      margin-top: 7px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid #334155;
+      border-radius: 5px;
+      padding: 4px 7px;
+      font-size: 0.56rem;
+      color: #475569;
+    }
+
+    /* Screen 3: Progress */
+    .s-progress { border-color: #10b981; background: rgba(16,185,129,0.04); }
+    .s-progress .screen-header { background: rgba(16,185,129,0.1); color: #34d399; }
+
+    .mastery-bar { display: flex; gap: 3px; margin-bottom: 8px; }
+    .mastery-seg { flex: 1; height: 7px; border-radius: 3px; background: #1e293b; }
+    .mastery-seg.active { background: #10b981; }
+
+    .concept-tags { display: flex; flex-wrap: wrap; gap: 3px; }
+    .ctag {
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.2);
+      border-radius: 20px;
+      padding: 2px 6px;
+      font-size: 0.56rem;
+      color: #6ee7b7;
+    }
+    .diff-badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 20px;
+      font-size: 0.58rem;
+      background: rgba(245,158,11,0.12);
+      border: 1px solid rgba(245,158,11,0.2);
+      color: #fbbf24;
+      margin-bottom: 8px;
+    }
+
+    /* Screen 4: Mastery */
+    .s-mastery { border-color: #f59e0b; background: rgba(245,158,11,0.04); }
+    .s-mastery .screen-header { background: rgba(245,158,11,0.1); color: #fbbf24; }
+
+    .mastery-celebrate { text-align: center; padding-top: 12px; }
+    .mastery-celebrate .star { font-size: 1.8rem; display: block; margin-bottom: 7px; }
+    .mastery-celebrate .msg-text { font-size: 0.62rem; color: #fde68a; line-height: 1.5; }
+    .next-btn {
+      margin-top: 10px;
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(245,158,11,0.15);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 5px;
+      font-size: 0.58rem;
+      color: #fbbf24;
+    }
+
+    /* Screen 5: Memory stored */
+    .s-memory { border-color: #a78bfa; background: rgba(167,139,250,0.04); }
+    .s-memory .screen-header { background: rgba(167,139,250,0.1); color: #c4b5fd; }
+
+    .mem-item {
+      font-size: 0.6rem;
+      color: #94a3b8;
+      padding: 4px 0;
+      border-bottom: 1px solid #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .mem-item:last-child { border-bottom: none; }
+    .mem-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Arrow connector */
+    .arrow-conn {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 62px;
+      padding: 0 3px;
+      padding-top: 80px;
+    }
+    .arrow-label { font-size: 0.58rem; color: #475569; margin-bottom: 4px; text-align: center; line-height: 1.4; }
+    .arrow-line {
+      width: 100%;
+      height: 2px;
+      background: #334155;
+      position: relative;
+    }
+    .arrow-line::after {
+      content: '';
+      position: absolute;
+      right: -1px; top: 50%;
+      transform: translateY(-50%);
+      width: 0; height: 0;
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+      border-left: 7px solid #475569;
+    }
+
+    /* Mastery levels row */
+    .mastery-levels {
+      margin-top: 52px;
+      width: 100%;
+      max-width: 640px;
+    }
+    .section-title {
+      font-size: 0.72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: #475569; margin-bottom: 18px; text-align: center;
+    }
+    .levels-row { display: flex; align-items: center; gap: 0; }
+    .level {
+      flex: 1; text-align: center; padding: 12px 8px;
+      border-radius: 10px; border: 1.5px solid;
+    }
+    .level-arrow { width: 28px; flex-shrink: 0; text-align: center; color: #334155; font-size: 1.1rem; }
+    .lname { font-size: 0.78rem; font-weight: 700; margin-bottom: 3px; }
+    .ldesc { font-size: 0.62rem; color: #64748b; line-height: 1.4; }
+
+    .l1 { background: rgba(100,116,139,0.08); border-color: #475569; }
+    .l1 .lname { color: #94a3b8; }
+    .l2 { background: rgba(59,130,246,0.08); border-color: #3b82f6; }
+    .l2 .lname { color: #93c5fd; }
+    .l3 { background: rgba(139,92,246,0.08); border-color: #8b5cf6; }
+    .l3 .lname { color: #c4b5fd; }
+    .l4 { background: rgba(16,185,129,0.08); border-color: #10b981; }
+    .l4 .lname { color: #34d399; }
+  </style>
+</head>
+<body>
+
+  <h1>User Flow</h1>
+  <p class="subtitle">Grasp — Adaptive Learning Assistant</p>
+
+  <div class="flow-row">
+
+    <!-- Screen 0: Setup -->
+    <div class="screen s-setup">
+      <div class="screen-header">Screen 0 — Setup</div>
+      <div class="screen-body">
+        <div class="setup-note">Shown only on first launch if no API key is found.</div>
+        <div style="font-size:0.6rem; color:#94a3b8; margin-bottom:6px;">Gemini API key</div>
+        <div class="key-input">sk-••••••••••••••••</div>
+        <div style="margin-bottom:8px"><span class="link-chip">Get free key at Google AI Studio →</span></div>
+        <div class="start-btn start-btn-rose">Save &amp; Start Learning</div>
+      </div>
+    </div>
+
+    <!-- Arrow 0→1 -->
+    <div class="arrow-conn">
+      <div class="arrow-label">Save key<br>to localStorage</div>
+      <div class="arrow-line"></div>
+    </div>
+
+    <!-- Screen 1: Home -->
+    <div class="screen s-home">
+      <div class="screen-header">Screen 1 — Home</div>
+      <div class="screen-body">
+        <div class="topic-grid">
+          <div class="topic-card">🐍 Python</div>
+          <div class="topic-card">⚛️ React</div>
+          <div class="topic-card">🗄️ SQL</div>
+          <div class="topic-card">🧮 Math</div>
+        </div>
+        <div style="font-size:0.56rem; color:#475569; margin-bottom:5px; text-align:center;">— or type any topic —</div>
+        <div class="custom-input">Type a topic...</div>
+        <div class="start-btn start-btn-blue" style="margin-top:8px">Start Learning</div>
+      </div>
+    </div>
+
+    <!-- Arrow 1→2 -->
+    <div class="arrow-conn">
+      <div class="arrow-label">POST<br>/api/sessions</div>
+      <div class="arrow-line"></div>
+    </div>
+
+    <!-- Screen 2: Chat -->
+    <div class="screen s-chat">
+      <div class="screen-header">Screen 2 — Chat</div>
+      <div class="screen-body">
+        <div class="chat-area">
+          <div class="msg msg-ai">What do you already know about closures?</div>
+          <div class="msg msg-user">I think they capture variables?</div>
+          <div class="msg msg-ai">Good — what happens to those variables after the function returns?</div>
+        </div>
+        <div class="chat-input-bar">Type your answer...</div>
+      </div>
+    </div>
+
+    <!-- Arrow 2→3 -->
+    <div class="arrow-conn">
+      <div class="arrow-label">Progress<br>toggle</div>
+      <div class="arrow-line"></div>
+    </div>
+
+    <!-- Screen 3: Progress Panel -->
+    <div class="screen s-progress">
+      <div class="screen-header">Progress Panel</div>
+      <div class="screen-body">
+        <div style="font-size:0.62rem; color:#64748b; margin-bottom:5px;">Understanding</div>
+        <div class="mastery-bar">
+          <div class="mastery-seg active"></div>
+          <div class="mastery-seg active"></div>
+          <div class="mastery-seg"></div>
+          <div class="mastery-seg"></div>
+        </div>
+        <div class="diff-badge">Intermediate</div>
+        <div style="font-size:0.62rem; color:#64748b; margin-bottom:5px;">Covered</div>
+        <div class="concept-tags">
+          <span class="ctag">functions</span>
+          <span class="ctag">scope</span>
+          <span class="ctag">closures</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arrow 3→4 -->
+    <div class="arrow-conn">
+      <div class="arrow-label">Mastery<br>gate ✓</div>
+      <div class="arrow-line"></div>
+    </div>
+
+    <!-- Screen 4: Mastery -->
+    <div class="screen s-mastery">
+      <div class="screen-header">Mastery Achieved</div>
+      <div class="screen-body">
+        <div class="mastery-celebrate">
+          <span class="star">🏆</span>
+          <div class="msg-text">Excellent! You've mastered closures and explained it clearly.</div>
+          <div class="next-btn">Next concept →</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arrow 4→5 -->
+    <div class="arrow-conn">
+      <div class="arrow-label">Store to<br>ChromaDB</div>
+      <div class="arrow-line"></div>
+    </div>
+
+    <!-- Screen 5: Memory -->
+    <div class="screen s-memory">
+      <div class="screen-header">ChromaDB Memory</div>
+      <div class="screen-body">
+        <div style="font-size:0.6rem; color:#94a3b8; margin-bottom:8px; line-height:1.5;">Concept logged. Available in future sessions.</div>
+        <div class="mem-item">
+          <div class="mem-dot" style="background:#34d399"></div>
+          closures — solid
+        </div>
+        <div class="mem-item">
+          <div class="mem-dot" style="background:#34d399"></div>
+          scope — solid
+        </div>
+        <div class="mem-item">
+          <div class="mem-dot" style="background:#a78bfa"></div>
+          decorators — developing
+        </div>
+        <div style="margin-top:8px; font-size:0.58rem; color:#475569;">Retrieved next session →</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Mastery levels -->
+  <div class="mastery-levels">
+    <div class="section-title">Mastery Signal Levels</div>
+    <div class="levels-row">
+      <div class="level l1">
+        <div class="lname">None</div>
+        <div class="ldesc">No understanding shown</div>
+      </div>
+      <div class="level-arrow">→</div>
+      <div class="level l2">
+        <div class="lname">Emerging</div>
+        <div class="ldesc">Partial or surface understanding</div>
+      </div>
+      <div class="level-arrow">→</div>
+      <div class="level l3">
+        <div class="lname">Developing</div>
+        <div class="ldesc">Mostly correct, small gaps</div>
+      </div>
+      <div class="level-arrow">→</div>
+      <div class="level l4">
+        <div class="lname">Solid</div>
+        <div class="ldesc">Gate passes — advance + store to ChromaDB</div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

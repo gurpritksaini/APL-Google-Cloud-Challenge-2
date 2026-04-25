@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grasp — Core Learning Loop</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f1117;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #a78bfa;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .subtitle { font-size: 0.875rem; color: #64748b; margin-bottom: 60px; }
+
+    .diagram {
+      position: relative;
+      width: 580px;
+      height: 580px;
+    }
+
+    .node {
+      position: absolute;
+      width: 138px;
+      height: 138px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      cursor: default;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      border: 2px solid transparent;
+    }
+
+    .node .number { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; }
+    .node .label  { font-size: 0.88rem; font-weight: 700; line-height: 1.3; }
+    .node .desc   { font-size: 0.62rem; opacity: 0.6; margin-top: 4px; line-height: 1.4; padding: 0 10px; }
+
+    /* Diamond positions */
+    .n1 { top: 0;    left: 50%; transform: translateX(-50%); }
+    .n2 { top: 50%;  right: 0;  transform: translateY(-50%); }
+    .n3 { bottom: 0; left: 50%; transform: translateX(-50%); }
+    .n4 { top: 50%;  left: 0;   transform: translateY(-50%); }
+
+    /* Memory node — bottom center, slightly outside the diamond */
+    .n5 {
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 56px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      cursor: default;
+      border: 1.5px solid #7c3aed;
+      background: rgba(124,58,237,0.12);
+      box-shadow: 0 0 20px rgba(124,58,237,0.2);
+    }
+    .n5 .label { font-size: 0.72rem; font-weight: 700; color: #a78bfa; }
+    .n5 .desc  { font-size: 0.58rem; color: #7c3aed; margin-top: 2px; }
+
+    .n1:hover { transform: translateX(-50%) scale(1.07); }
+    .n2:hover { transform: translateY(-50%) scale(1.07); }
+    .n3:hover { transform: translateX(-50%) scale(1.07); }
+    .n4:hover { transform: translateY(-50%) scale(1.07); }
+
+    .n1 { background: rgba(139,92,246,0.13); border-color: #7c3aed; box-shadow: 0 0 28px rgba(124,58,237,0.22); }
+    .n2 { background: rgba(59,130,246,0.13);  border-color: #2563eb; box-shadow: 0 0 28px rgba(37,99,235,0.22); }
+    .n3 { background: rgba(16,185,129,0.13);  border-color: #059669; box-shadow: 0 0 28px rgba(5,150,105,0.22); }
+    .n4 { background: rgba(245,158,11,0.13);  border-color: #d97706; box-shadow: 0 0 28px rgba(217,119,6,0.22); }
+
+    .n1 .number { color: #a78bfa; } .n1 .label { color: #c4b5fd; }
+    .n2 .number { color: #60a5fa; } .n2 .label { color: #93c5fd; }
+    .n3 .number { color: #34d399; } .n3 .label { color: #6ee7b7; }
+    .n4 .number { color: #fbbf24; } .n4 .label { color: #fde68a; }
+
+    /* SVG arrows */
+    .arrows { position: absolute; inset: 0; pointer-events: none; }
+
+    @keyframes dashMove { to { stroke-dashoffset: -24; } }
+
+    .arrow-path {
+      fill: none;
+      stroke-width: 2;
+      stroke-dasharray: 8 4;
+      animation: dashMove 1.2s linear infinite;
+    }
+    .a1 { stroke: #7c3aed; }
+    .a2 { stroke: #2563eb; }
+    .a3 { stroke: #059669; }
+    .a4 { stroke: #d97706; }
+    .a5 { stroke: #7c3aed; stroke-dasharray: 4 4; animation: dashMove 2s linear infinite; }
+
+    /* Center hub */
+    .center {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 76px; height: 76px;
+      border-radius: 50%;
+      background: rgba(167,139,250,0.07);
+      border: 1px solid rgba(167,139,250,0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    @keyframes spin { from { transform: translate(-50%,-50%) rotate(0deg); } to { transform: translate(-50%,-50%) rotate(360deg); } }
+    .center-ring {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 98px; height: 98px;
+      border-radius: 50%;
+      border: 1px dashed rgba(167,139,250,0.16);
+      animation: spin 20s linear infinite;
+    }
+
+    /* Memory label connector note */
+    .mem-label {
+      position: absolute;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.58rem;
+      color: #475569;
+      white-space: nowrap;
+    }
+
+    .legend {
+      margin-top: 72px;
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .legend-item { display: flex; align-items: center; gap: 7px; font-size: 0.78rem; color: #94a3b8; }
+    .legend-dot  { width: 9px; height: 9px; border-radius: 50%; }
+  </style>
+</head>
+<body>
+
+  <h1>Core Learning Loop</h1>
+  <p class="subtitle">Grasp — Adaptive Learning Assistant</p>
+
+  <div class="diagram">
+
+    <svg class="arrows" viewBox="0 0 580 580">
+      <defs>
+        <marker id="arr1" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#7c3aed"/></marker>
+        <marker id="arr2" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#2563eb"/></marker>
+        <marker id="arr3" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#059669"/></marker>
+        <marker id="arr4" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#d97706"/></marker>
+        <marker id="arr5" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#7c3aed"/></marker>
+      </defs>
+
+      <!-- 1 Assess → 2 Teach -->
+      <path class="arrow-path a1" d="M 360,110 Q 460,110 460,220" marker-end="url(#arr1)" />
+      <!-- 2 Teach → 3 Verify -->
+      <path class="arrow-path a2" d="M 460,360 Q 460,460 360,460" marker-end="url(#arr2)" />
+      <!-- 3 Verify → 4 Adapt -->
+      <path class="arrow-path a3" d="M 220,460 Q 120,460 120,360" marker-end="url(#arr3)" />
+      <!-- 4 Adapt → 1 Assess -->
+      <path class="arrow-path a4" d="M 120,220 Q 120,110 220,110" marker-end="url(#arr4)" />
+      <!-- 4 Adapt → Memory (dashed, down) -->
+      <path class="arrow-path a5" d="M 200,460 Q 200,540 290,560" marker-end="url(#arr5)" />
+      <!-- Memory → 1 Assess (dashed, up) -->
+      <path class="arrow-path a5" d="M 380,560 Q 450,540 460,460" marker-end="url(#arr5)" />
+    </svg>
+
+    <div class="center-ring"></div>
+    <div class="center">🎓</div>
+
+    <div class="node n1">
+      <span class="number">Step 1</span>
+      <span class="label">Assess<br>Knowledge</span>
+      <span class="desc">Prior knowledge + ChromaDB memory</span>
+    </div>
+
+    <div class="node n2">
+      <span class="number">Step 2</span>
+      <span class="label">Teach<br>Socratic</span>
+      <span class="desc">Guided questions via Gemini</span>
+    </div>
+
+    <div class="node n3">
+      <span class="number">Step 3</span>
+      <span class="label">Verify<br>Understanding</span>
+      <span class="desc">Mastery gate check</span>
+    </div>
+
+    <div class="node n4">
+      <span class="number">Step 4</span>
+      <span class="label">Adapt &amp;<br>Review</span>
+      <span class="desc">Switch strategy + store turn</span>
+    </div>
+
+    <!-- Memory node -->
+    <div class="n5">
+      <span class="label">💾 ChromaDB</span>
+      <span class="desc">Persist + Retrieve</span>
+    </div>
+
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>Assess Knowledge</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#60a5fa"></div>Teach (Socratic)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#34d399"></div>Verify Understanding</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fbbf24"></div>Adapt &amp; Review</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>ChromaDB Memory</div>
+  </div>
+
+</body>
+</html>

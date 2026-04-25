@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grasp — Teaching Strategy Flow</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f1117;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 48px 24px 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #a78bfa;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 0.875rem;
+      color: #64748b;
+      margin-bottom: 56px;
+    }
+
+    .flow {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Decision diamond */
+    .diamond-wrap {
+      position: relative;
+      width: 180px;
+      height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .diamond {
+      width: 180px;
+      height: 90px;
+      transform: rotate(0deg);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .diamond::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(139,92,246,0.12);
+      border: 2px solid #7c3aed;
+      transform: rotate(45deg) scale(0.65);
+      border-radius: 4px;
+    }
+
+    .diamond-text {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #c4b5fd;
+      text-align: center;
+      z-index: 1;
+      line-height: 1.4;
+    }
+
+    /* Plain box */
+    .box {
+      padding: 10px 20px;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1.5px solid;
+    }
+
+    .box-trigger {
+      background: rgba(100,116,139,0.1);
+      border-color: #475569;
+      color: #94a3b8;
+      padding: 12px 24px;
+    }
+
+    /* Strategy outcome boxes */
+    .outcomes {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .outcome {
+      flex: 1;
+      min-width: 130px;
+      max-width: 155px;
+      border-radius: 12px;
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      border: 1.5px solid;
+      transition: transform 0.15s ease;
+      cursor: default;
+      text-align: center;
+    }
+
+    .outcome:hover { transform: translateY(-3px); }
+
+    .outcome-icon { font-size: 1.4rem; }
+    .outcome-strategy { font-size: 0.75rem; font-weight: 700; }
+    .outcome-when { font-size: 0.65rem; line-height: 1.4; }
+
+    .o-blue   { background: rgba(59,130,246,0.08); border-color: #3b82f6; }
+    .o-blue   .outcome-strategy { color: #93c5fd; }
+    .o-blue   .outcome-when     { color: #60a5fa88; }
+
+    .o-purple { background: rgba(139,92,246,0.08); border-color: #8b5cf6; }
+    .o-purple .outcome-strategy { color: #c4b5fd; }
+    .o-purple .outcome-when     { color: #a78bfa88; }
+
+    .o-orange { background: rgba(249,115,22,0.08); border-color: #f97316; }
+    .o-orange .outcome-strategy { color: #fdba74; }
+    .o-orange .outcome-when     { color: #fb923c88; }
+
+    .o-red    { background: rgba(239,68,68,0.08);  border-color: #ef4444; }
+    .o-red    .outcome-strategy { color: #fca5a5; }
+    .o-red    .outcome-when     { color: #f8717188; }
+
+    .o-green  { background: rgba(16,185,129,0.08); border-color: #10b981; }
+    .o-green  .outcome-strategy { color: #6ee7b7; }
+    .o-green  .outcome-when     { color: #34d39988; }
+
+    /* Connector */
+    .v-line {
+      width: 2px;
+      height: 28px;
+      background: #334155;
+    }
+
+    .h-spread {
+      position: relative;
+      width: 100%;
+      height: 2px;
+      background: #334155;
+      margin: 0 0 0 0;
+    }
+
+    /* Signal table */
+    .signal-table {
+      width: 100%;
+      max-width: 800px;
+      margin-top: 56px;
+      border-collapse: collapse;
+    }
+
+    .signal-table th {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #475569;
+      padding: 8px 16px;
+      text-align: left;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .signal-table td {
+      padding: 10px 16px;
+      font-size: 0.78rem;
+      border-bottom: 1px solid #0f172a;
+      vertical-align: top;
+    }
+
+    .signal-table tr:hover td {
+      background: rgba(255,255,255,0.02);
+    }
+
+    .signal { color: #94a3b8; }
+    .response { color: #e2e8f0; }
+    .strategy-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 0.68rem;
+      font-weight: 600;
+    }
+
+    .sb-blue   { background: rgba(59,130,246,0.15);  color: #93c5fd; }
+    .sb-purple { background: rgba(139,92,246,0.15); color: #c4b5fd; }
+    .sb-orange { background: rgba(249,115,22,0.15); color: #fdba74; }
+    .sb-red    { background: rgba(239,68,68,0.15);  color: #fca5a5; }
+    .sb-green  { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #475569;
+      margin-bottom: 16px;
+      text-align: center;
+      width: 100%;
+      max-width: 800px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Teaching Strategy Flow</h1>
+  <p class="subtitle">Grasp — Adaptive Learning Assistant</p>
+
+  <div class="flow">
+
+    <!-- Trigger -->
+    <div class="box box-trigger">Learner submits a response</div>
+    <div class="v-line"></div>
+
+    <!-- Decision -->
+    <div class="diamond-wrap">
+      <div class="diamond">
+        <span class="diamond-text">Analyze<br>Signal</span>
+      </div>
+    </div>
+    <div class="v-line"></div>
+
+    <!-- Spread bar -->
+    <div style="width:100%; height:2px; background:#334155;"></div>
+
+    <!-- Outcomes -->
+    <div class="outcomes" style="margin-top:0; padding-top:20px;">
+
+      <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+        <div class="v-line" style="height:20px"></div>
+        <div class="outcome o-blue">
+          <div class="outcome-icon">❓</div>
+          <div class="outcome-strategy">Socratic</div>
+          <div class="outcome-when">Default — guides learner to discover answers through questions</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+        <div class="v-line" style="height:20px"></div>
+        <div class="outcome o-purple">
+          <div class="outcome-icon">🔗</div>
+          <div class="outcome-strategy">Analogies</div>
+          <div class="outcome-when">Abstract concept needs grounding in familiar terms</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+        <div class="v-line" style="height:20px"></div>
+        <div class="outcome o-orange">
+          <div class="outcome-icon">🔢</div>
+          <div class="outcome-strategy">Worked Examples</div>
+          <div class="outcome-when">Learner needs a concrete step-by-step demonstration</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+        <div class="v-line" style="height:20px"></div>
+        <div class="outcome o-red">
+          <div class="outcome-icon">📢</div>
+          <div class="outcome-strategy">Direct Explanation</div>
+          <div class="outcome-when">Learner is stuck after multiple failed attempts</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+        <div class="v-line" style="height:20px"></div>
+        <div class="outcome o-green">
+          <div class="outcome-icon">🔄</div>
+          <div class="outcome-strategy">Review</div>
+          <div class="outcome-when">Reinforcing a concept covered earlier in the session</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Signal → Response table -->
+  <div class="section-title" style="margin-top:56px;">Adaptation Signal Map</div>
+  <table class="signal-table">
+    <thead>
+      <tr>
+        <th>Signal Detected</th>
+        <th>AI Response</th>
+        <th>Strategy</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="signal">Correct + confident</td>
+        <td class="response">Advance to next concept</td>
+        <td><span class="strategy-badge sb-blue">Socratic</span></td>
+      </tr>
+      <tr>
+        <td class="signal">Correct + tentative</td>
+        <td class="response">Verify with another question before advancing</td>
+        <td><span class="strategy-badge sb-blue">Socratic</span></td>
+      </tr>
+      <tr>
+        <td class="signal">Partially correct</td>
+        <td class="response">Targeted clarification on the knowledge gap</td>
+        <td><span class="strategy-badge sb-orange">Worked Examples</span></td>
+      </tr>
+      <tr>
+        <td class="signal">Misconception detected</td>
+        <td class="response">Re-teach using a different approach</td>
+        <td><span class="strategy-badge sb-purple">Analogies</span></td>
+      </tr>
+      <tr>
+        <td class="signal">Completely lost</td>
+        <td class="response">Simplify, break into smaller pieces</td>
+        <td><span class="strategy-badge sb-red">Direct Explanation</span></td>
+      </tr>
+      <tr>
+        <td class="signal">Prior concept unclear</td>
+        <td class="response">Loop back to earlier material</td>
+        <td><span class="strategy-badge sb-green">Review</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+</body>
+</html>
