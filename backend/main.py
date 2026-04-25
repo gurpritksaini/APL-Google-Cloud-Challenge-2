@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -9,11 +10,13 @@ from services.chroma_service import init_chroma
 
 load_dotenv()
 
+_raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
+ALLOWED_ORIGINS = ["*"] if _raw_origins == "*" else _raw_origins.split(",")
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_chroma()
-    print("ChromaDB initialized at ./chroma_db")
     yield
 
 
@@ -21,7 +24,7 @@ app = FastAPI(title="Grasp Learning Assistant API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )

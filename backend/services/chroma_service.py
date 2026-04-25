@@ -1,7 +1,10 @@
+import os
 import chromadb
 from datetime import datetime, timezone
 
 from models.schemas import MemoryContext
+
+_CHROMA_PATH = os.getenv("CHROMA_PATH", "./chroma_db")
 
 _client: chromadb.PersistentClient | None = None
 _sessions_col = None
@@ -11,7 +14,7 @@ _concepts_col = None
 
 def init_chroma():
     global _client, _sessions_col, _turns_col, _concepts_col
-    _client = chromadb.PersistentClient(path="./chroma_db")
+    _client = chromadb.PersistentClient(path=_CHROMA_PATH)
     _sessions_col = _client.get_or_create_collection("sessions")
     _turns_col = _client.get_or_create_collection("conversation_turns")
     _concepts_col = _client.get_or_create_collection("concepts_mastered")
